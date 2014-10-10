@@ -25,6 +25,7 @@
 ;;; Code:
 
 (require 'helm)
+(require 'helm-grep)
 (require 'f)
 
 (defgroup helm-deft nil
@@ -39,13 +40,18 @@
 (defcustom helm-deft-extension "org"
   "defines file extension to be searched for")
 
+(defvar helm-deft-file-list ""
+  "list of candidate files")
+
 (defvar helm-source-deft-fn
   '((name . "File Names")
-    (init . (lambda () (with-current-buffer (helm-candidate-buffer 'local)
-			 (insert (mapconcat 'identity
-					    (helm-deft-fn-search) "\n")))))
+    (init . (lambda ()
+	      (progn (setq helm-deft-file-list (helm-deft-fname-search))
+		     (with-current-buffer (helm-candidate-buffer 'local)
+			  (insert (mapconcat 'identity
+					     helm-deft-file-list "\n"))))))
     (candidates-in-buffer)
-    ;;(candidates . helm-deft-fn-search)   ;; would be too slow
+    ;;(candidates . helm-deft-fname-search)   ;; would be too slow
     ;; (action . (("open file" . (lambda (candidate)
     ;; 				(find-file candidate)))))
     (type . file)
@@ -53,19 +59,41 @@
     )
   "Source definition for matching filenames of the `helm-deft' utility")
 
-(defun helm-deft-fn-search ()
+(defvar helm-source-deft-filegrep
+  '((name . "File Contents")
+    (candidates-process . helm-deft-fgrep-search)
+    ;;(action . (("return name " . (lambda (candidate) candidate))))
+    (action . helm-grep-action)))
+
+(defun helm-deft-fname-search ()
+  "search all preconfigured directories for matching files and return the
+filenames as a list"
   (cl-loop for dir in helm-deft-dir-list
 	   collect (f--files dir (equal (f-ext it) helm-deft-extension) t)
 	   into reslst
 	   finally (return (apply #'append reslst)))  
   )
 
+(defun helm-deft-fgrep-search ()
+  (let* ((srch-str (car (split-string helm-pattern " ")))
+	 (shcmd (format "grep -an -e \"%s\" %s"
+				       srch-str
+				       (mapconcat 'identity
+						  helm-deft-file-list " "))))
+    (helm-log "grep command: %s" shcmd)
+    (start-process-shell-command "helm-deft-proc" "*helm-deft-proc*"
+				 shcmd))
+  )
 
 ;;;###autoload
 (defun helm-deft ()
   "Preconfigured `helm' module for locating note files where either the
 filename or the file contents match the query string"
   (interactive)
-  (helm :sources '(helm-source-deft-fn)))
+  (helm :sources '(helm-source-deft-fn helm-source-deft-filegrep)))
 
 (provide 'helm-deft)
+
+;; I could also try to use
+;; find . -not -path "*/.git/*" -name "*.org" -type f
+;; grep -an -e "o[^ ]*let" *.el
