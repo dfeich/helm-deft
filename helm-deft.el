@@ -33,15 +33,15 @@
 
 (defcustom helm-deft-dir-list
   '("~/Documents" "~/Dropbox/org/deft")
-  "list of directories for helm-deft to search recursively"
+  "list of directories in which to search recursively for candidate files"
   :group 'helm-deft
   )
 
 (defcustom helm-deft-extension "org"
-  "defines file extension to be searched for")
+  "defines file extension for identifying candidate files to be searched for")
 
 (defvar helm-deft-file-list ""
-  "list of candidate files")
+  "variable to store the list of candidate files")
 
 (defvar helm-source-deft-fn
   '((name . "File Names")
@@ -51,10 +51,18 @@
 			  (insert (mapconcat 'identity
 					     helm-deft-file-list "\n"))))))
     (candidates-in-buffer)
-    ;;(candidates . helm-deft-fname-search)   ;; would be too slow
+    ;; matching is done in the buffer when candidates-in-buffer is used
+    ;; We only want against the basename and not the full path
+    (match-part . (lambda (c) (helm-basename c)))
+    (type . file)
+    ;; Note: We override the transformer that the file type brings. We
+    ;; want the file list sorted
+    (candidate-transformer . (lambda (c) (sort (helm-highlight-files c)
+					       (lambda (a b)
+						 (string< (downcase (car a))
+							  (downcase (car b)))))))
     ;; (action . (("open file" . (lambda (candidate)
     ;; 				(find-file candidate)))))
-    (type . file)
     ;;(persistent-help . "show name")    
     )
   "Source definition for matching filenames of the `helm-deft' utility")
@@ -62,8 +70,15 @@
 (defvar helm-source-deft-filegrep
   '((name . "File Contents")
     (candidates-process . helm-deft-fgrep-search)
-    ;;(action . (("return name " . (lambda (candidate) candidate))))
-    (action . helm-grep-action)))
+    ;; We use the action from the helm-grep module
+    (action . helm-grep-action)
+    (requires-pattern)
+    (filter-one-by-one . helm-grep-filter-one-by-one)
+    (cleanup . (lambda () (when (get-buffer "*helm-deft-proc*")
+			    (kill-buffer "*helm-deft-proc*"))))
+    )
+  "Source definition for matching against file contents for the
+  `helm-deft' utility")
 
 (defun helm-deft-fname-search ()
   "search all preconfigured directories for matching files and return the
@@ -75,8 +90,10 @@ filenames as a list"
   )
 
 (defun helm-deft-fgrep-search ()
+  "greps for the helm search pattern in the configuration defined
+file list"
   (let* ((srch-str (car (split-string helm-pattern " ")))
-	 (shcmd (format "grep -an -e \"%s\" %s"
+	 (shcmd (format "grep -ian -e \"%s\" %s"
 				       srch-str
 				       (mapconcat 'identity
 						  helm-deft-file-list " "))))
@@ -88,12 +105,9 @@ filenames as a list"
 ;;;###autoload
 (defun helm-deft ()
   "Preconfigured `helm' module for locating note files where either the
-filename or the file contents match the query string"
+filename or the file contents match the query string. Inspired by the
+emacs `deft' extension"
   (interactive)
   (helm :sources '(helm-source-deft-fn helm-source-deft-filegrep)))
 
 (provide 'helm-deft)
-
-;; I could also try to use
-;; find . -not -path "*/.git/*" -name "*.org" -type f
-;; grep -an -e "o[^ ]*let" *.el
