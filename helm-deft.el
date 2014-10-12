@@ -108,7 +108,7 @@ FILELST is a list of file paths"
 						pattern filelst)))))
 			 (build-inner-cmd ptrnlst filelst))
 		     filelst)))
-    (format "grep -n \"%s\" %s" firstp innercmd))
+    (format "grep -Hn \"%s\" %s" firstp innercmd))
   )
 
 (defun helm-deft-fgrep-search ()
