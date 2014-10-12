@@ -32,7 +32,7 @@
   "customization group for the helm-deft utility" :group 'helm :version 24.3)
 
 (defcustom helm-deft-dir-list
-  '("~/Documents" "~/Dropbox/org/deft")
+  '("~/Documents")
   "list of directories in which to search recursively for candidate files"
   :group 'helm-deft
   )
