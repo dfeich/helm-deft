@@ -89,14 +89,32 @@ filenames as a list"
 	   finally (return (apply #'append reslst)))  
   )
 
+(defun helm-deft-build-cmd (ptrnstr filelst)
+  "Builds a grep command where PTRNSTR may contain multiple search patterns
+separated by spaces. The first pattern will be used to retrieve matching lines.
+All other patterns will be used to pre-select files with matching lines.
+FILELST is a list of file paths"
+  (let* ((ptrnlst (split-string ptrnstr "  *"))
+	 (firstp (pop ptrnlst))
+	 (filelst (mapconcat 'identity filelst " "))
+	 (innercmd (if ptrnlst
+		       (cl-labels ((build-inner-cmd
+				    (ptrnlst filelst)
+				    (let ((pattern (pop ptrnlst)))
+				      (if ptrnlst
+					  (format "$(grep -lie \"%s\" %s)" pattern
+						  (build-inner-cmd ptrnlst filelst))
+					(format "$(grep -lie \"%s\" %s)"
+						pattern filelst)))))
+			 (build-inner-cmd ptrnlst filelst))
+		     filelst)))
+    (format "grep -n \"%s\" %s" firstp innercmd))
+  )
+
 (defun helm-deft-fgrep-search ()
   "greps for the helm search pattern in the configuration defined
 file list"
-  (let* ((srch-str (car (split-string helm-pattern " ")))
-	 (shcmd (format "grep -ian -e \"%s\" %s"
-				       srch-str
-				       (mapconcat 'identity
-						  helm-deft-file-list " "))))
+  (let* ((shcmd (helm-deft-build-cmd helm-pattern helm-deft-file-list)))
     (helm-log "grep command: %s" shcmd)
     (start-process-shell-command "helm-deft-proc" "*helm-deft-proc*"
 				 shcmd))
@@ -111,3 +129,6 @@ emacs `deft' extension"
   (helm :sources '(helm-source-deft-fn helm-source-deft-filegrep)))
 
 (provide 'helm-deft)
+
+
+
