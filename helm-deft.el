@@ -103,13 +103,13 @@ FILELST is a list of file paths"
 				    (ptrnlst filelst)
 				    (let ((pattern (pop ptrnlst)))
 				      (if ptrnlst
-					  (format "$(grep -lie \"%s\" %s)" pattern
+					  (format "$(grep -Elie \"%s\" %s)" pattern
 						  (build-inner-cmd ptrnlst filelst))
-					(format "$(grep -lie \"%s\" %s)"
+					(format "$(grep -Elie \"%s\" %s)"
 						pattern filelst)))))
 			 (build-inner-cmd ptrnlst filelst))
 		     filelst)))
-    (format "grep -Hin \"%s\" %s" firstp innercmd))
+    (format "grep -EHine \"%s\" %s" firstp innercmd))
   )
 
 (defun helm-deft-fgrep-search ()
