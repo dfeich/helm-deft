@@ -81,6 +81,27 @@
   "Source definition for matching against file contents for the
   `helm-deft' utility")
 
+(defun helm-deft-rotate-searchkeys ()
+  "rotate the words of the search pattern in the helm minibuffer"
+  (interactive)
+  (helm-log "Executing helm-deft-rotate-searchkeys")
+  (let ((patlst (split-string helm-pattern "  *")))
+    (when (and (>= (length patlst) 1)
+	       (> (length (car patlst)) 0))
+      (delete-minibuffer-contents)
+      (insert (mapconcat #'identity
+			 (append (cdr patlst) (list (car patlst)))
+			 " "))
+      (helm-update)))
+  )
+
+(defvar helm-deft-map
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map helm-map)
+    (define-key map (kbd "C-r") 'helm-deft-rotate-searchkeys)
+    (delq nil map))
+  "helm keymap used for helm deft sources")
+
 (defun helm-deft-fname-search ()
   "search all preconfigured directories for matching files and return the
 filenames as a list"
@@ -131,7 +152,8 @@ file list"
 filename or the file contents match the query string. Inspired by the
 emacs `deft' extension"
   (interactive)
-  (helm :sources '(helm-source-deft-fn helm-source-deft-filegrep)))
+  (helm :sources '(helm-source-deft-fn helm-source-deft-filegrep)
+	:keymap helm-deft-map))
 
 (provide 'helm-deft)
 
