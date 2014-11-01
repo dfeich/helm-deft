@@ -76,7 +76,8 @@
     (requires-pattern)
     (filter-one-by-one . helm-grep-filter-one-by-one)
     (cleanup . (lambda () (when (get-buffer "*helm-deft-proc*")
-			    (kill-buffer "*helm-deft-proc*"))))
+			    (let ((kill-buffer-query-functions nil))
+			      (kill-buffer "*helm-deft-proc*")))))
     )
   "Source definition for matching against file contents for the
   `helm-deft' utility")
