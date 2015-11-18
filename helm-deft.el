@@ -6,6 +6,7 @@
 ;; Keywords: convenience
 ;; Homepage: https://github.com/dfeich/helm-deft
 ;; Version: TODO
+;; Package-Requires: ((helm "1.7.7") (f "0.17.0") (cl-lib "0.5"))
 
 ;; This file is not part of GNU Emacs.
 
