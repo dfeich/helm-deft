@@ -157,6 +157,4 @@ emacs `deft' extension"
 	:keymap helm-deft-map))
 
 (provide 'helm-deft)
-
-
-
+;;; helm-deft.el ends here
