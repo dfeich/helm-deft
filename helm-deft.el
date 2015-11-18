@@ -28,6 +28,7 @@
 (require 'helm-grep)
 (require 'helm-files)
 (require 'f)
+(require 'cl-lib)
 
 (defgroup helm-deft nil
   "customization group for the helm-deft utility" :group 'helm :version 24.3)
@@ -106,11 +107,11 @@
 (defun helm-deft-fname-search ()
   "search all preconfigured directories for matching files and return the
 filenames as a list"
-  (assert helm-deft-extension nil "No file extension defined for helm-deft")
-  (assert helm-deft-dir-list nil "No directories defined for helm-deft")
+  (cl-assert helm-deft-extension nil "No file extension defined for helm-deft")
+  (cl-assert helm-deft-dir-list nil "No directories defined for helm-deft")
   (cl-loop for dir in helm-deft-dir-list
-	   do (assert (file-exists-p dir) nil
-		      (format "Directory %s does not exist. Check helm-deft-dir-list" dir))
+	   do (cl-assert (file-exists-p dir) nil
+			 (format "Directory %s does not exist. Check helm-deft-dir-list" dir))
 	   collect (f--files dir (equal (f-ext it) helm-deft-extension) t)
 	   into reslst
 	   finally (return (apply #'append reslst)))  
