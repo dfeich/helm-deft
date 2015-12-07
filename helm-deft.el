@@ -109,7 +109,7 @@ filenames as a list"
 separated by spaces. The first pattern will be used to retrieve matching lines.
 All other patterns will be used to pre-select files with matching lines.
 FILELST is a list of file paths"
-  (let* ((ptrnlst (remove "" (reverse (split-string ptrnstr "  *"))))
+  (let* ((ptrnlst (reverse (split-string ptrnstr "  *" t)))
 	 (firstp (pop ptrnlst))
 	 (filelst (mapconcat 'identity filelst " "))
 	 (innercmd (if ptrnlst
@@ -117,13 +117,13 @@ FILELST is a list of file paths"
 				    (ptrnlst filelst)
 				    (let ((pattern (pop ptrnlst)))
 				      (if ptrnlst
-					  (format "$(grep -Elie \"%s\" %s)" pattern
+					  (format "$(grep -Elie '%s' %s)" pattern
 						  (build-inner-cmd ptrnlst filelst))
-					(format "$(grep -Elie \"%s\" %s)"
+					(format "$(grep -Elie '%s' %s)"
 						pattern filelst)))))
 			 (build-inner-cmd ptrnlst filelst))
 		     filelst)))
-    (format "grep -EHine \"%s\" %s" firstp innercmd))
+    (format "grep -EHine '%s' %s" firstp innercmd))
   )
 
 (defun helm-deft-fgrep-search ()
