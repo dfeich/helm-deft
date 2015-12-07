@@ -60,7 +60,8 @@
     ;; matching is done in the buffer when candidates-in-buffer is used
     ;; We only want against the basename and not the full path
     (match-part . (lambda (c) (helm-basename c)))
-    (type . file)
+    ;;(type . file)
+    (action . helm-find-files-actions)
     ;; Note: We override the transformer that the file type brings. We
     ;; want the file list sorted
     (candidate-transformer . (lambda (c) (sort (helm-highlight-files c)
@@ -170,7 +171,8 @@ file list"
 (defvar helm-source-deft-matching-files
   '((name . "Matching Files")
     (candidates . helm-deft-matching-files)
-    (type . file)
+    ;;(type . file)
+    (action . helm-find-files-actions)
     ;; need to override the file type's match settings
     (match . (lambda (candidate) t))
     (candidate-transformer . (lambda (c) (sort (helm-highlight-files c)
