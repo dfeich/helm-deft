@@ -63,7 +63,8 @@
     ;;(type . file)
     (action . helm-find-files-actions)
     ;; Note: We override the transformer that the file type brings. We
-    ;; want the file list sorted
+    ;; want the file list sorted. helm-highlight-files also will
+    ;; transform a filename to a (basename . filename) cons
     (candidate-transformer . (lambda (c) (sort (helm-highlight-files c)
 					       (lambda (a b)
 						 (string< (downcase (car a))
@@ -172,6 +173,9 @@ file list"
   '((name . "Matching Files")
     (candidates . helm-deft-matching-files)
     ;;(type . file)
+    ;; introducing the delayed value to always have it scheduled after
+    ;; the async grep process that produces the basis for this source
+    (delayed . 0.5)
     (action . helm-find-files-actions)
     ;; need to override the file type's match settings
     (match . (lambda (candidate) t))
@@ -214,10 +218,23 @@ file list"
       (helm-update)))
   )
 
+(defun helm-deft-remove-candidate-file ()
+  "remove the file under point from the list of candidates"
+  (interactive)
+  (let ((selection (helm-get-selection)))
+    (when (string-match "\\([^:]+\\):[0-9]+:" selection)
+      (setq selection (match-string 1 selection)))
+    (message "selection: %s in %s" selection (helm-get-current-source))
+    (setq helm-deft-file-list (delete selection helm-deft-file-list))
+    (helm-update)
+    )
+  )
+
 (defvar helm-deft-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map helm-map)
     (define-key map (kbd "C-r") 'helm-deft-rotate-searchkeys)
+    (define-key map (kbd "C-d") 'helm-deft-remove-candidate-file)
     (delq nil map))
   "helm keymap used for helm deft sources")
 
