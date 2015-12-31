@@ -52,7 +52,8 @@
 (defvar helm-source-deft-fn
   '((name . "File Names")
     (init . (lambda ()
-	      (progn (setq helm-deft-file-list (helm-deft-fname-search))
+	      (progn (unless helm-deft-file-list
+		       (setq helm-deft-file-list (helm-deft-fname-search)))
 		     (with-current-buffer (helm-candidate-buffer 'local)
 		       (insert (mapconcat 'identity
 					  helm-deft-file-list "\n"))))))
@@ -69,9 +70,7 @@
 					       (lambda (a b)
 						 (string< (downcase (car a))
 							  (downcase (car b)))))))
-    ;; (action . (("open file" . (lambda (candidate)
-    ;; 				(find-file candidate)))))
-    ;;(persistent-help . "show name")    
+    (cleanup . (lambda () (setq helm-deft-file-list nil)))
     )
   "Source definition for matching filenames of the `helm-deft' utility")
 
@@ -221,20 +220,28 @@ file list"
 (defun helm-deft-remove-candidate-file ()
   "remove the file under point from the list of candidates"
   (interactive)
-  (let ((selection (helm-get-selection)))
+  ;; helm-get-selection returns current item under point
+  ;; helm-marked-candidates returns all marked candidates or the item under point
+  (dolist (selection (helm-marked-candidates))
     (when (string-match "\\([^:]+\\):[0-9]+:" selection)
       (setq selection (match-string 1 selection)))
-    (message "selection: %s in %s" selection (helm-get-current-source))
-    (setq helm-deft-file-list (delete selection helm-deft-file-list))
-    (helm-update)
-    )
-  )
+    (setq helm-deft-file-list (delete selection helm-deft-file-list)))
+  (helm-unmark-all)
+  (helm-force-update))
+
+(defun helm-deft-set-to-marked ()
+  "set the filelist to the marked files"
+  (interactive)
+  (setq helm-deft-file-list (helm-marked-candidates))
+  (helm-unmark-all)
+  (helm-force-update))
 
 (defvar helm-deft-map
   (let ((map (make-sparse-keymap)))
     (set-keymap-parent map helm-map)
     (define-key map (kbd "C-r") 'helm-deft-rotate-searchkeys)
     (define-key map (kbd "C-d") 'helm-deft-remove-candidate-file)
+    (define-key map (kbd "C-s") 'helm-deft-set-to-marked)
     (delq nil map))
   "helm keymap used for helm deft sources")
 
