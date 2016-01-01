@@ -63,8 +63,7 @@
     (match-part . (lambda (c) (helm-basename c)))
     ;;(type . file)
     (action . helm-find-files-actions)
-    ;; Note: We override the transformer that the file type brings. We
-    ;; want the file list sorted. helm-highlight-files also will
+    ;; We want the file list sorted. helm-highlight-files also will
     ;; transform a filename to a (basename . filename) cons
     (candidate-transformer . (lambda (c) (sort (helm-highlight-files c)
 					       (lambda (a b)
@@ -99,10 +98,12 @@ filenames as a list"
 				      collect (string-remove-prefix "w:" ptr) into cptr
 				      else collect ptr into cptr
 				      finally return (mapconcat 'identity cptr " "))))
-    ;; we abuse the filter-one-by-one function for building the
-    ;; candidates list for the matching-files source
     (filter-one-by-one . (lambda (candidate)
+			   ;; we abuse the filter-one-by-one function
+			   ;; for building the candidates list for the
+			   ;; matching-files source
 			   (helm-deft-matching-files-search candidate)
+			   ;; we borrow the helm-grep filter function
 			   (helm-grep-filter-one-by-one candidate)))
     (cleanup . (lambda () (when (get-buffer "*helm-deft-proc*")
 			    (let ((kill-buffer-query-functions nil))
@@ -120,7 +121,7 @@ FILELST is a list of file paths"
 	 (firstp (pop ptrnlst))
 	 (firstaddflag (if (string-prefix-p "w:" firstp)
 			   (progn
-			     (setq pattern (string-remove-prefix "w:" firstp))
+			     (setq firstp (string-remove-prefix "w:" firstp))
 			     "-w")
 			 ""))
 	 (filelst (mapconcat 'identity filelst " "))
@@ -151,7 +152,10 @@ FILELST is a list of file paths"
   "greps for the helm search pattern in the configuration defined
 file list"
   (setq helm-deft-matching-files '())
-  (let* ((shcmd (helm-deft-build-cmd helm-pattern helm-deft-file-list)))
+  ;; need to pass helm-input (the real input line) to the build
+  ;; function since helm-pattern is already cleaned by the
+  ;; pattern-transformer function of helm-source-deft-filegrep
+  (let* ((shcmd (helm-deft-build-cmd helm-input helm-deft-file-list)))
     (helm-log "grep command: %s" shcmd)
     ;; the function must return the process object
     (prog1
