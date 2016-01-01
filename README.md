@@ -15,6 +15,9 @@ helm-deft is composed of three helm search sources
 -   file contents: show the lines where the last word in the search patterns
     matches
 
+If a search pattern is headed by a `w:` prefix, the search will be constrained
+for whole words for this pattern.
+
 Additionally, it offers a number of key commands
 
 -   `C-r`: Allows to "rotate" the words in the helm search string, e.g.
@@ -26,5 +29,14 @@ Additionally, it offers a number of key commands
     -   `C-d`: Delete file under point from the candidates list (also works
         on multiple mark selection).
     -   `C-e`: Allows to set the candidates list to the list of marked files.
+
+## Shortcomings
+
+-   The candidates for the *matching files* source are built after
+    the grep process from the *file contents* source. The only
+    successful way I found to have the *matching files* source
+    updated after the *file contents* source, was to introduce a
+    `delayed` attribute in the *matching files* source. Regrettably
+    this also results in that source being showed last.
 
 Derek Feichtinger

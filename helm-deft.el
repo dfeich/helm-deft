@@ -56,7 +56,7 @@
 (defcustom helm-deft-extension "org"
   "Defines file extension for identifying candidate files to be searched for.")
 
-(defvar helm-deft-file-list ""
+(defvar helm-deft-file-list nil
   "Variable to store the list of candidate files.
 This is constant over the invocation of one helm-deft.")
 
@@ -65,6 +65,7 @@ This is constant over the invocation of one helm-deft.")
 
 (defvar helm-source-deft-fn
   '((name . "File Names")
+    (header-line . "C-r: rotate pattern C-s/C-d: set/delete (marked) candidates from list")
     (init . (lambda ()
 	      (progn (unless helm-deft-file-list
 		       (setq helm-deft-file-list (helm-deft-fname-search)))
