@@ -93,6 +93,12 @@ filenames as a list"
     ;; We use the action from the helm-grep module
     (action . helm-grep-action)
     (requires-pattern)
+    (pattern-transformer . (lambda (pattern)
+			     (cl-loop for ptr in (split-string pattern "  *" t)
+				      if (string-prefix-p "w:" ptr)
+				      collect (string-remove-prefix "w:" ptr) into cptr
+				      else collect ptr into cptr
+				      finally return (mapconcat 'identity cptr " "))))
     ;; we abuse the filter-one-by-one function for building the
     ;; candidates list for the matching-files source
     (filter-one-by-one . (lambda (candidate)
@@ -112,19 +118,33 @@ All other patterns will be used to pre-select files with matching lines.
 FILELST is a list of file paths"
   (let* ((ptrnlst (reverse (split-string ptrnstr "  *" t)))
 	 (firstp (pop ptrnlst))
+	 (firstaddflag (if (string-prefix-p "w:" firstp)
+			   (progn
+			     (setq pattern (string-remove-prefix "w:" firstp))
+			     "-w")
+			 ""))
 	 (filelst (mapconcat 'identity filelst " "))
 	 (innercmd (if ptrnlst
 		       (cl-labels ((build-inner-cmd
 				    (ptrnlst filelst)
-				    (let ((pattern (pop ptrnlst)))
+				    (let* ((pattern (pop ptrnlst))
+					   (addflags
+					    (if (string-prefix-p "w:" pattern)
+						(progn
+						  (setq pattern
+							(string-remove-prefix
+							 "w:" pattern))
+						  "-w")
+					      "")))
 				      (if ptrnlst
-					  (format "$(grep -Elie '%s' %s)" pattern
+					  (format "$(grep %s -Elie '%s' %s)"
+						  addflags pattern
 						  (build-inner-cmd ptrnlst filelst))
-					(format "$(grep -Elie '%s' %s)"
-						pattern filelst)))))
+					(format "$(grep %s -Elie '%s' %s)"
+						addflags pattern filelst)))))
 			 (build-inner-cmd ptrnlst filelst))
 		     filelst)))
-    (format "grep -EHine '%s' %s" firstp innercmd))
+    (format "grep %s -EHine '%s' %s" firstaddflag firstp innercmd))
   )
 
 (defun helm-deft-fgrep-search ()
