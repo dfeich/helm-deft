@@ -2,7 +2,7 @@
 
 ;; Copyright (C) 2014 Derek Feichtinger
 
-;; Author: Derek Feichtinger <derek.feichtinger@psi.ch>
+;; Author: Derek Feichtinger <dfeich@gmail.com>
 ;; Keywords: convenience
 ;; Homepage: https://github.com/dfeich/helm-deft
 ;; Version: TODO
@@ -22,6 +22,18 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
 
+;;; Commentary:
+;; Helm command to find files fast based on contents and filename. Inspired
+;; by the great emacs deft package. It allows defining a list of input directories
+;; that can be defined and that are searched recursively.
+;;
+;; helm-deft is composed of three search sources
+;; - file names: simple match of pattern vs. file name
+;; - file match: shows file names of files where all of the individual patterns
+;;   match anywhere in the file
+;; - file contents: show the lines where the last word in the search patterns
+;;   matches
+
 ;;; Code:
 
 (require 'helm)
@@ -29,25 +41,26 @@
 (require 'helm-files)
 (require 'f)
 (require 'cl)
+(require 'subr-x)
 
 (defgroup helm-deft nil
   "customization group for the helm-deft utility" :group 'helm :version 24.3)
 
 (defcustom helm-deft-dir-list
   '("~/Documents")
-  "list of directories in which to search recursively for candidate files."
+  "List of directories in which to search recursively for candidate files."
   :group 'helm-deft
   )
 
 (defcustom helm-deft-extension "org"
-  "defines file extension for identifying candidate files to be searched for.")
+  "Defines file extension for identifying candidate files to be searched for.")
 
 (defvar helm-deft-file-list ""
-  "variable to store the list of candidate files. This is
-  constant over the invocation of one helm-deft.")
+  "Variable to store the list of candidate files.
+This is constant over the invocation of one helm-deft.")
 
 (defvar helm-deft-matching-files '()
-  "used for building the list of filenames that the grep matched.")
+  "Used for building the list of filenames that the grep matched.")
 
 (defvar helm-source-deft-fn
   '((name . "File Names")
@@ -71,11 +84,11 @@
 							  (downcase (car b)))))))
     (cleanup . (lambda () (setq helm-deft-file-list nil)))
     )
-  "Source definition for matching filenames of the `helm-deft' utility")
+  "Source definition for matching filenames of the `helm-deft' utility.")
 
 (defun helm-deft-fname-search ()
-  "search all preconfigured directories for matching files and return the
-filenames as a list"
+  "Search all preconfigured directories for matching files.
+Returns the filenames as a list."
   (assert helm-deft-extension nil "No file extension defined for helm-deft")
   (assert helm-deft-dir-list nil "No directories defined for helm-deft")
   (cl-loop for dir in helm-deft-dir-list
@@ -109,14 +122,14 @@ filenames as a list"
 			    (let ((kill-buffer-query-functions nil))
 			      (kill-buffer "*helm-deft-proc*")))))
     )
-  "Source definition for matching against file contents for the
-  `helm-deft' utility")
+  "Source definition for matching against file contents for the `helm-deft' utility.")
 
 (defun helm-deft-build-cmd (ptrnstr filelst)
-  "Builds a grep command where PTRNSTR may contain multiple search patterns
-separated by spaces. The first pattern will be used to retrieve matching lines.
-All other patterns will be used to pre-select files with matching lines.
-FILELST is a list of file paths"
+  "Builds a grep command based on the patterns and file list.
+PTRNSTR may contain multiple search patterns separated by
+spaces.  The first pattern will be used to retrieve matching
+lines.  All other patterns will be used to pre-select files with
+matching lines.  FILELST is a list of file paths"
   (let* ((ptrnlst (reverse (split-string ptrnstr "  *" t)))
 	 (firstp (pop ptrnlst))
 	 (firstaddflag (if (string-prefix-p "w:" firstp)
@@ -149,8 +162,7 @@ FILELST is a list of file paths"
   )
 
 (defun helm-deft-fgrep-search ()
-  "greps for the helm search pattern in the configuration defined
-file list"
+  "Greps for the helm search pattern in the configuration defined file list."
   (setq helm-deft-matching-files '())
   ;; need to pass helm-input (the real input line) to the build
   ;; function since helm-pattern is already cleaned by the
@@ -163,7 +175,7 @@ file list"
 				     shcmd)
       (set-process-sentinel
        (get-process "helm-deft-proc")
-       (lambda (process event)      	 
+       (lambda (process event)
 	 (cond
 	  ((string= event "finished\n")
 	   (with-helm-window
@@ -209,10 +221,10 @@ file list"
     (requires-pattern)
     (volatile)
     )
-  "Source definition for showing matching files from the grep buffer of the
-  `helm-deft' utility")
+  "Source definition for showing matching files from the grep buffer of the `helm-deft' utility.")
 
 (defun helm-deft-matching-files-search (candidate)
+  "Add entry to helm-deft-matching-files list from a grep CANDIDATE."
   (when (string-match "\\([^:]+\\):[0-9]+:" candidate)
     (pushnew (match-string 1 candidate) helm-deft-matching-files :test #'equal)))
 
@@ -228,7 +240,7 @@ file list"
 ;;   )
 
 (defun helm-deft-rotate-searchkeys ()
-  "rotate the words of the search pattern in the helm minibuffer"
+  "Rotate the words of the search pattern in the helm minibuffer."
   (interactive)
   (helm-log "Executing helm-deft-rotate-searchkeys")
   (let ((patlst (split-string helm-pattern "  *")))
@@ -242,7 +254,7 @@ file list"
   )
 
 (defun helm-deft-remove-candidate-file ()
-  "remove the file under point from the list of candidates"
+  "Remove the file under point from the list of candidates."
   (interactive)
   ;; helm-get-selection returns current item under point
   ;; helm-marked-candidates returns all marked candidates or the item under point
@@ -254,7 +266,7 @@ file list"
   (helm-force-update))
 
 (defun helm-deft-set-to-marked ()
-  "set the filelist to the marked files"
+  "Set the filelist to the marked files."
   (interactive)
   (setq helm-deft-file-list (helm-marked-candidates))
   (helm-unmark-all)
@@ -267,19 +279,19 @@ file list"
     (define-key map (kbd "C-d") 'helm-deft-remove-candidate-file)
     (define-key map (kbd "C-s") 'helm-deft-set-to-marked)
     (delq nil map))
-  "helm keymap used for helm deft sources")
+  "Helm keymap used for helm deft sources.")
 
 ;;;###autoload
 (defun helm-deft ()
-  "Preconfigured `helm' module for locating note files where either the
-filename or the file contents match the query string. Inspired by the
-emacs `deft' extension"
+  "Preconfigured `helm' module for locating matching files.
+Either the filename or the file contents must match the query
+string.  Inspired by the Emacs `deft' extension"
   (interactive)
   (helm :sources '(helm-source-deft-fn helm-source-deft-matching-files
 				       helm-source-deft-filegrep)
 	:keymap helm-deft-map))
 
 (provide 'helm-deft)
-
+;;; helm-deft.el ends here
 
 
