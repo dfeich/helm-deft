@@ -64,29 +64,21 @@ This is constant over the invocation of one helm-deft.")
   "Used for building the list of filenames that the grep matched.")
 
 (defvar helm-source-deft-fn
-  '((name . "File Names")
-    (header-line . "C-r: rotate pattern C-s/C-d: set/delete (marked) candidates from list")
-    (init . (lambda ()
-	      (progn (unless helm-deft-file-list
-		       (setq helm-deft-file-list (helm-deft-fname-search)))
-		     (with-current-buffer (helm-candidate-buffer 'local)
-		       (insert (mapconcat 'identity
-					  helm-deft-file-list "\n"))))))
-    (candidates-in-buffer)
-    ;; matching is done in the buffer when candidates-in-buffer is used
-    ;; We only want against the basename and not the full path
-    (match-part . (lambda (c) (helm-basename c)))
-    ;;(type . file)
-    (action . helm-find-files-actions)
-    ;; We want the file list sorted. helm-highlight-files also will
-    ;; transform a filename to a (basename . filename) cons
-    (candidate-transformer . (lambda (c) (sort (helm-highlight-files c)
-					       (lambda (a b)
-						 (string< (downcase (car a))
-							  (downcase (car b)))))))
-    (cleanup . (lambda () (setq helm-deft-file-list nil)))
-    )
-  "Source definition for matching filenames of the `helm-deft' utility.")
+  (helm-build-in-buffer-source "File Names"
+    :header-line "C-r: rotate pattern C-s/C-d: set/delete (marked) candidates from list"
+    :init (lambda ()
+	    (progn (unless helm-deft-file-list
+		     (setq helm-deft-file-list (helm-deft-fname-search)))
+		   (helm-init-candidates-in-buffer 'local
+		     helm-deft-file-list)
+		   ))
+    :match-part (lambda (c) (helm-basename c))
+    :action helm-find-files-actions
+    :candidate-transformer (lambda (c) (sort (helm-highlight-files c)
+					     (lambda (a b)
+					       (string< (downcase (car a))
+							(downcase (car b))))))
+    :cleanup (lambda () (setq helm-deft-file-list nil))))
 
 (defun helm-deft-fname-search ()
   "Search all preconfigured directories for matching files.
