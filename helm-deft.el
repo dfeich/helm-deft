@@ -93,30 +93,29 @@ Returns the filenames as a list."
 	   finally (return (apply #'append reslst)))
   )
 
+
 (defvar helm-source-deft-filegrep
-  '((name . "File Contents")
-    (candidates-process . helm-deft-fgrep-search)
+  (helm-build-async-source "File contents"
+    :candidates-process #'helm-deft-fgrep-search
     ;; We use the action from the helm-grep module
-    (action . helm-grep-action)
-    (requires-pattern)
-    (pattern-transformer . (lambda (pattern)
-			     (cl-loop for ptr in (split-string pattern "  *" t)
-				      if (string-prefix-p "w:" ptr)
-				      collect (string-remove-prefix "w:" ptr) into cptr
-				      else collect ptr into cptr
-				      finally return (mapconcat 'identity cptr " "))))
-    (filter-one-by-one . (lambda (candidate)
-			   ;; we abuse the filter-one-by-one function
-			   ;; for building the candidates list for the
-			   ;; matching-files source
-			   (helm-deft-matching-files-search candidate)
-			   ;; we borrow the helm-grep filter function
-			   (helm-grep-filter-one-by-one candidate)))
-    (cleanup . (lambda () (when (get-buffer "*helm-deft-proc*")
-			    (let ((kill-buffer-query-functions nil))
-			      (kill-buffer "*helm-deft-proc*")))))
-    )
-  "Source definition for matching against file contents for the `helm-deft' utility.")
+    :action #'helm-grep-action
+    :requires-pattern t
+    :pattern-transformer (lambda (pattern)
+			   (cl-loop for ptr in (split-string pattern "  *" t)
+				    if (string-prefix-p "w:" ptr)
+				    collect (string-remove-prefix "w:" ptr) into cptr
+				    else collect ptr into cptr
+				    finally return (mapconcat 'identity cptr " ")))
+    :filter-one-by-one (lambda (candidate)
+			 ;; we abuse the filter-one-by-one function
+			 ;; for building the candidates list for the
+			 ;; matching-files source
+			 (helm-deft-matching-files-search candidate)
+			 ;; we borrow the helm-grep filter function
+			 (helm-grep-filter-one-by-one candidate))
+    :cleanup (lambda () (when (get-buffer "*helm-deft-proc*")
+			  (let ((kill-buffer-query-functions nil))
+			    (kill-buffer "*helm-deft-proc*"))))))
 
 (defun helm-deft-build-cmd (ptrnstr filelst)
   "Builds a grep command based on the patterns and file list.
