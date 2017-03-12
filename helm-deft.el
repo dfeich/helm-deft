@@ -6,7 +6,7 @@
 ;; Keywords: convenience
 ;; Homepage: https://github.com/dfeich/helm-deft
 ;; Version: TODO
-;; Package-Requires: ((helm "1.7.7") (f "0.17.0") (cl-lib "0.5"))
+;; Package-Requires: ((helm "1.7.7") (f "0.17.0") (cl-lib "0.5") (emacs "24.4"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -74,10 +74,10 @@ This is constant over the invocation of one helm-deft.")
 		   ))
     :match-part (lambda (c) (helm-basename c))
     :action helm-find-files-actions
-    :candidate-transformer (lambda (c) (sort (helm-highlight-files c)
-					     (lambda (a b)
-					       (string< (downcase (car a))
-							(downcase (car b))))))
+    ;; :candidate-transformer (lambda (c) (sort (helm-highlight-files c)
+    ;; 					     (lambda (a b)
+    ;; 					       (string< (downcase (car a))
+    ;; 							(downcase (car b))))))
     :cleanup (lambda () (setq helm-deft-file-list nil))))
 
 (defun helm-deft-fname-search ()
@@ -208,10 +208,10 @@ matching lines.  FILELST is a list of file paths"
     (action . helm-find-files-actions)
     ;; need to override the file type's match settings
     (match . (lambda (candidate) t))
-    (candidate-transformer . (lambda (c) (sort (helm-highlight-files c)
-    					       (lambda (a b)
-    						 (string< (downcase (car a))
-    							  (downcase (car b)))))))
+    ;; (candidate-transformer . (lambda (c) (sort (helm-highlight-files c)
+    ;; 					       (lambda (a b)
+    ;; 						 (string< (downcase (car a))
+    ;; 							  (downcase (car b)))))))
     (requires-pattern)
     (volatile)
     )
