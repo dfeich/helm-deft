@@ -187,6 +187,7 @@ matching lines.  FILELST is a list of file paths"
 	  ;; Helm may kill the process in
 	  ;; helm-output-filter--process-source if the number of results is
 	  ;; getting larger than the limit.
+	  ;; TODO: maybe do something more sensible int the sentinel
       	  ((or (string= event "finished\n")
 	       (string= event "killed\n"))
 	   (helm-log "doing nothing")
@@ -205,9 +206,7 @@ matching lines.  FILELST is a list of file paths"
       	   ;; 		     'face 'helm-grep-finish))))
 	   ;;(force-mode-line-update)
 	   ;; )
-	   ;; must NOT DO a targeted update here. Seems to call also this source
-	   ;; and we end in an infinite loop
-	   ;; (helm-update nil helm-source-deft-matching-files)
+	   
 	   )
 
 	  ;; Catch unhandled events in log.
@@ -223,12 +222,9 @@ matching lines.  FILELST is a list of file paths"
 (defvar helm-source-deft-matching-files
   (helm-build-sync-source "Matching Files"
     :candidates 'helm-deft-matching-files
-    ;;(type . file)
-    ;; introducing the delayed value to always have it scheduled after
-    ;; the async grep process that produces the basis for this source
-    ;; NO LONGER SUPPORTED :delayed 0.5
     :action helm-find-files-actions
-    ;; need to override the file type's match settings
+    ;; do not do string matching on the resulting filenames (i.e. all candidates
+    ;; match)
     :match (lambda (candidate) t)
     ;; (candidate-transformer . (lambda (c) (sort (helm-highlight-files c)
     ;; 					       (lambda (a b)
@@ -240,40 +236,12 @@ matching lines.  FILELST is a list of file paths"
     )
   "Source definition for showing matching files from the grep buffer of the `helm-deft' utility.")
 
-;; (defvar helm-source-deft-matching-files
-;;   '((name . "Matching Files")
-;;     (candidates . helm-deft-matching-files)
-;;     ;;(type . file)
-;;     ;; introducing the delayed value to always have it scheduled after
-;;     ;; the async grep process that produces the basis for this source
-;;     (delayed . 0.5)
-;;     (action . helm-find-files-actions)
-;;     ;; need to override the file type's match settings
-;;     (match . (lambda (candidate) t))
-;;     ;; (candidate-transformer . (lambda (c) (sort (helm-highlight-files c)
-;;     ;; 					       (lambda (a b)
-;;     ;; 						 (string< (downcase (car a))
-;;     ;; 							  (downcase (car b)))))))
-;;     (requires-pattern)
-;;     (volatile)
-;;     )
-;;   "Source definition for showing matching files from the grep buffer of the `helm-deft' utility.")
 
 (defun helm-deft-matching-files-search (candidate)
   "Add entry to helm-deft-matching-files list from a grep CANDIDATE."
   (when (string-match "\\([^:]+\\):[0-9]+:" candidate)
     (pushnew (match-string 1 candidate) helm-deft-matching-files :test #'equal)))
 
-;; (defun helm-deft-matching-files-search ()
-;;   (when (get-buffer "*helm-deft-proc*")
-;;     (with-current-buffer "*helm-deft-proc*"
-;;       (beginning-of-buffer)
-;;       (while (and
-;; 	      (looking-at "^\\([^:]+\\):[0-9]+:")
-;; 	      (not (equal (forward-line) 1)))
-;; 	(push (match-string 1) helm-deft-matching-files)))
-;;     (cl-remove-duplicates helm-deft-matching-files :test #'equal))
-;;   )
 
 (defun helm-deft-rotate-searchkeys ()
   "Rotate the words of the search pattern in the helm minibuffer."
