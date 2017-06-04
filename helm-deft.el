@@ -174,35 +174,47 @@ matching lines.  FILELST is a list of file paths"
     (helm-log "grep command: %s" shcmd)
     ;; the function must return the process object
     (prog1
-	(start-process-shell-command "helm-deft-proc" "*helm-deft-proc*"
+	;; a process buffer is not needed since helm is collecting the
+	;; output using a filter function for the process
+	(start-process-shell-command "helm-deft-proc" nil
 				     shcmd)
       (set-process-sentinel
        (get-process "helm-deft-proc")
        (lambda (process event)
-	 (cond
-	  ((string= event "finished\n")
-	   (with-helm-window
-	     (setq mode-line-format
-		   '(" " mode-line-buffer-identification " "
-		     (:eval (format "L%s" (helm-candidate-number-at-point))) " "
-		     (:eval (propertize
-			     ;; TODO: The count is wrong since it counts all sources
-			     (format
-			      "[Grep process finished - (%s results)] "
-			      (max (1- (count-lines
-					(point-min)
-					(point-max)))
-				   0))
-			     'face 'helm-grep-finish))))
-	     (force-mode-line-update))
+	 (helm-log "file contents sentinel event: %s"
+		   (replace-regexp-in-string "\n" "" event))
+      	 (cond
+	  ;; Helm may kill the process in
+	  ;; helm-output-filter--process-source if the number of results is
+	  ;; getting larger than the limit.
+      	  ((or (string= event "finished\n")
+	       (string= event "killed\n"))
+	   (helm-log "doing nothing")
+      	   ;; (with-helm-window
+      	   ;;   (setq mode-line-format
+      	   ;; 	   '(" " mode-line-buffer-identification " "
+      	   ;; 	     (:eval (format "L%s" (helm-candidate-number-at-point))) " "
+      	   ;; 	     (:eval (propertize
+      	   ;; 		     ;; TODO: The count is wrong since it counts all sources
+      	   ;; 		     (format
+      	   ;; 		      "[Grep process finished - (%s results)] "
+      	   ;; 		      (max (1- (count-lines
+      	   ;; 				(point-min)
+      	   ;; 				(point-max)))
+      	   ;; 			   0))
+      	   ;; 		     'face 'helm-grep-finish))))
+	   ;;(force-mode-line-update)
+	   ;; )
 	   ;; must NOT DO a targeted update here. Seems to call also this source
 	   ;; and we end in an infinite loop
 	   ;; (helm-update nil helm-source-deft-matching-files)
 	   )
-	  ;; Catch error output in log.
-	  (t (helm-log
-	      "Error: Grep %s"
-	      (replace-regexp-in-string "\n" "" event))))
+
+	  ;; Catch unhandled events in log.
+	  (t
+	   (helm-log
+	    "Unhandled event in process sentinel: %s"
+	    (replace-regexp-in-string "\n" "" event))))
 	 ))
       )
     ))
@@ -210,7 +222,7 @@ matching lines.  FILELST is a list of file paths"
 
 (defvar helm-source-deft-matching-files
   (helm-build-sync-source "Matching Files"
-    :candidates (append '("my-debug-example") helm-deft-matching-files)
+    :candidates 'helm-deft-matching-files
     ;;(type . file)
     ;; introducing the delayed value to always have it scheduled after
     ;; the async grep process that produces the basis for this source
