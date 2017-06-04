@@ -63,6 +63,15 @@ This is constant over the invocation of one helm-deft.")
 (defvar helm-deft-matching-files '()
   "Used for building the list of filenames that the grep matched.")
 
+(defvar helm-deft-map
+  (let ((map (make-sparse-keymap)))
+    (set-keymap-parent map helm-map)
+    (define-key map (kbd "C-r") 'helm-deft-rotate-searchkeys)
+    (define-key map (kbd "C-d") 'helm-deft-remove-candidate-file)
+    (define-key map (kbd "C-s") 'helm-deft-set-to-marked)
+    (delq nil map))
+  "Helm keymap used for helm deft sources.")
+
 (defvar helm-source-deft-fn
   (helm-build-in-buffer-source "File Names"
     :header-line "C-r: rotate pattern C-s/C-d: set/delete (marked) candidates from list"
@@ -78,6 +87,7 @@ This is constant over the invocation of one helm-deft.")
     ;; 					     (lambda (a b)
     ;; 					       (string< (downcase (car a))
     ;; 							(downcase (car b))))))
+    :keymap helm-deft-map
     :cleanup (lambda () (setq helm-deft-file-list nil))))
 
 (defun helm-deft-fname-search ()
@@ -197,24 +207,45 @@ matching lines.  FILELST is a list of file paths"
       )
     ))
 
+
 (defvar helm-source-deft-matching-files
-  '((name . "Matching Files")
-    (candidates . helm-deft-matching-files)
+  (helm-build-sync-source "Matching Files"
+    :candidates (append '("my-debug-example") helm-deft-matching-files)
     ;;(type . file)
     ;; introducing the delayed value to always have it scheduled after
     ;; the async grep process that produces the basis for this source
-    (delayed . 0.5)
-    (action . helm-find-files-actions)
+    ;; NO LONGER SUPPORTED :delayed 0.5
+    :action helm-find-files-actions
     ;; need to override the file type's match settings
-    (match . (lambda (candidate) t))
+    :match (lambda (candidate) t)
     ;; (candidate-transformer . (lambda (c) (sort (helm-highlight-files c)
     ;; 					       (lambda (a b)
     ;; 						 (string< (downcase (car a))
     ;; 							  (downcase (car b)))))))
-    (requires-pattern)
-    (volatile)
+    :requires-pattern t
+    :volatile t
+    :keymap helm-deft-map
     )
   "Source definition for showing matching files from the grep buffer of the `helm-deft' utility.")
+
+;; (defvar helm-source-deft-matching-files
+;;   '((name . "Matching Files")
+;;     (candidates . helm-deft-matching-files)
+;;     ;;(type . file)
+;;     ;; introducing the delayed value to always have it scheduled after
+;;     ;; the async grep process that produces the basis for this source
+;;     (delayed . 0.5)
+;;     (action . helm-find-files-actions)
+;;     ;; need to override the file type's match settings
+;;     (match . (lambda (candidate) t))
+;;     ;; (candidate-transformer . (lambda (c) (sort (helm-highlight-files c)
+;;     ;; 					       (lambda (a b)
+;;     ;; 						 (string< (downcase (car a))
+;;     ;; 							  (downcase (car b)))))))
+;;     (requires-pattern)
+;;     (volatile)
+;;     )
+;;   "Source definition for showing matching files from the grep buffer of the `helm-deft' utility.")
 
 (defun helm-deft-matching-files-search (candidate)
   "Add entry to helm-deft-matching-files list from a grep CANDIDATE."
@@ -264,15 +295,6 @@ matching lines.  FILELST is a list of file paths"
   (setq helm-deft-file-list (helm-marked-candidates))
   (helm-unmark-all)
   (helm-force-update))
-
-(defvar helm-deft-map
-  (let ((map (make-sparse-keymap)))
-    (set-keymap-parent map helm-map)
-    (define-key map (kbd "C-r") 'helm-deft-rotate-searchkeys)
-    (define-key map (kbd "C-d") 'helm-deft-remove-candidate-file)
-    (define-key map (kbd "C-s") 'helm-deft-set-to-marked)
-    (delq nil map))
-  "Helm keymap used for helm deft sources.")
 
 ;;;###autoload
 (defun helm-deft ()
