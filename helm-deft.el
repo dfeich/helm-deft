@@ -74,7 +74,8 @@ This is constant over the invocation of one helm-deft.")
 
 (defvar helm-source-deft-fn
   (helm-build-in-buffer-source "File Names"
-    :header-line "C-r: rotate pattern C-s/C-d: set/delete (marked) candidates from list"
+    :header-name (lambda (name)
+		   (format "%s:   %s" name  "C-r: rotate pattern C-s/C-d: set/delete (marked) candidates"))
     :init (lambda ()
 	    (progn (unless helm-deft-file-list
 		     (setq helm-deft-file-list (helm-deft-fname-search)))
@@ -221,6 +222,8 @@ matching lines.  FILELST is a list of file paths"
 
 (defvar helm-source-deft-matching-files
   (helm-build-sync-source "Matching Files"
+    :header-name (lambda (name)
+		   (format "%s:   %s" name  "C-r: rotate pattern C-s/C-d: set/delete (marked) candidates"))
     :candidates 'helm-deft-matching-files
     :action helm-find-files-actions
     ;; do not do string matching on the resulting filenames (i.e. all candidates
