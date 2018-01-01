@@ -49,16 +49,30 @@
 
 (defcustom helm-deft-dir-list
   '("~/Documents")
-  "List of directories in which to search recursively for candidate files."
+  "List of directories in which to search recursively for candidate files.
+It is possible to either define it as a simple list of strings or as an association
+list structured to contain group names and the respective directory list definitions.
+
+Example:
+'((\"group1\" . (\"dir1\" \"dir2\" \"dir3\"))
+  (\"group2\" . (\"dir1\" \"dir4\")))
+"
   :group 'helm-deft
   )
 
 (defcustom helm-deft-extension "org"
   "Defines file extension for identifying candidate files to be searched for.")
 
+(defvar helm-deft-active-dir-list nil
+  "Contains the currently active list of directories to search")
+
 (defvar helm-deft-file-list nil
   "Variable to store the list of candidate files.
 This is constant over the invocation of one helm-deft.")
+
+(defvar helm-deft-backup-file-list nil
+  "Variable to store a backup of the list of candidate files.
+Used for allowing the user to reset the candidate file list after manipulations.")
 
 (defvar helm-deft-matching-files '()
   "Used for building the list of filenames that the grep matched.")
@@ -69,6 +83,8 @@ This is constant over the invocation of one helm-deft.")
     (define-key map (kbd "C-r") 'helm-deft-rotate-searchkeys)
     (define-key map (kbd "C-d") 'helm-deft-remove-candidate-file)
     (define-key map (kbd "C-s") 'helm-deft-set-to-marked)
+    (define-key map (kbd "C-.") 'helm-deft-reset-to-init)
+    (define-key map (kbd "C-,") 'helm-deft-change-dir-list)
     (delq nil map))
   "Helm keymap used for helm deft sources.")
 
@@ -78,7 +94,8 @@ This is constant over the invocation of one helm-deft.")
 		   (format "%s:   %s" name  "C-r: rotate pattern C-s/C-d: set/delete (marked) candidates"))
     :init (lambda ()
 	    (progn (unless helm-deft-file-list
-		     (setq helm-deft-file-list (helm-deft-fname-search)))
+		     (setq helm-deft-file-list (helm-deft-fname-search))
+		     (setq helm-deft-backup-file-list helm-deft-file-list))
 		   (helm-init-candidates-in-buffer 'local
 		     helm-deft-file-list)
 		   ))
@@ -94,9 +111,7 @@ This is constant over the invocation of one helm-deft.")
 (defun helm-deft-fname-search ()
   "Search all preconfigured directories for matching files.
 Returns the filenames as a list."
-  (assert helm-deft-extension nil "No file extension defined for helm-deft")
-  (assert helm-deft-dir-list nil "No directories defined for helm-deft")
-  (cl-loop for dir in helm-deft-dir-list
+  (cl-loop for dir in helm-deft-active-dir-list
 	   do (assert (file-exists-p dir) nil
 		      (format "Directory %s does not exist. Check helm-deft-dir-list" dir))
 	   collect (f--files dir (equal (f-ext it) helm-deft-extension) t)
@@ -127,6 +142,32 @@ Returns the filenames as a list."
     :cleanup (lambda () (when (get-buffer "*helm-deft-proc*")
 			  (let ((kill-buffer-query-functions nil))
 			    (kill-buffer "*helm-deft-proc*"))))))
+
+;; TODO: I do not remember exactly why I introduced this function. But I guess it was a stepf
+;; for first producing the list of matching filenames and then the grep results in contrast to
+;; the present was of first getting the full grep results, and then the matching files from them.
+(defun helm-deft-build-match-cmd (ptrnlst filelst)
+  (if ptrnlst
+      (cl-labels ((build-inner-cmd
+		   (ptrnlst filelst)
+		   (let* ((pattern (pop ptrnlst))
+			  (addflags
+			   (if (string-prefix-p "w:" pattern)
+			       (progn
+				 (setq pattern
+				       (string-remove-prefix
+					"w:" pattern))
+				 "-w")
+			     "")))
+		     (if ptrnlst
+			 (format "$(grep %s -Elie '%s' %s)"
+				 addflags pattern
+				 (build-inner-cmd ptrnlst filelst))
+		       (format "$(grep %s -Elie '%s' %s)"
+			       addflags pattern filelst)))))
+	(build-inner-cmd ptrnlst filelst))
+    filelst)
+  )
 
 (defun helm-deft-build-cmd (ptrnstr filelst)
   "Builds a grep command based on the patterns and file list.
@@ -279,12 +320,42 @@ matching lines.  FILELST is a list of file paths"
   (helm-unmark-all)
   (helm-force-update))
 
+(defun helm-deft-reset-to-init ()
+  "Set the filelist back to the initial candidates"
+  (interactive)
+  (setq helm-deft-file-list helm-deft-backup-file-list)
+  (helm-unmark-all)
+  (helm-force-update))
+
+(defun helm-deft-change-dir-list ()
+  "Change the active directory search list.
+Allows to select another directory group from `helm-deft-dir-list'."
+  (interactive)
+  (when (eq 'cons (type-of (car helm-deft-dir-list)))
+    (setq helm-deft-active-dir-list
+	  (car (helm-comp-read "dir group: " helm-deft-dir-list
+			       :must-match t
+			       :allow-nest t)))
+    (setq helm-deft-file-list nil) ; this will trigger full reinitialization
+    (helm-force-update))
+  ;; ;; another way to set the group in the minibuffer using standard emacs functionality 
+  ;; (let ((enable-recursive-minibuffers t))
+  ;;   (setq helm-deft-active-dir-list
+  ;; 	  (completing-read "group: " '(("a" . (a b c)) ("x" . (x y z))) nil t)))
+  )
+
 ;;;###autoload
 (defun helm-deft ()
   "Preconfigured `helm' module for locating matching files.
 Either the filename or the file contents must match the query
 string.  Inspired by the Emacs `deft' extension"
   (interactive)
+  (assert helm-deft-extension nil "No file extension defined for helm-deft")
+  (assert helm-deft-dir-list nil "No directories defined for helm-deft")
+  (setq helm-deft-active-dir-list
+	(if (eq  'cons (type-of (car helm-deft-dir-list)))
+	    (cadar helm-deft-dir-list)
+	  helm-deft-dir-list))
   (helm :sources '(helm-source-deft-fn helm-source-deft-matching-files
 				       helm-source-deft-filegrep)
 	:keymap helm-deft-map))
