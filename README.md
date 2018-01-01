@@ -1,3 +1,5 @@
+
+
 # helm-deft
 
 This is still very much experimental, even though I have been using it
@@ -20,6 +22,7 @@ state of development.
 
 Derek
 
+
 ## Configuration
 
 The configuration can also be done using the normal `M-x
@@ -27,12 +30,23 @@ The configuration can also be done using the normal `M-x
 
 -   `helm-deft-dir-list`: List of directories in which to search
     recursively for candidate files.
+    This is either a simple list
     
         (setq helm-deft-dir-list '("~/Documents" "~/my-other-docs"))
+    
+    or it can be given as an association list structured to contain
+    group names and the respective directory list definitions.
+    
+        (setq helm-deft-dir-list '(("group1" . ("dir1" "dir2" "dir3"))
+                                   ("group2" . ("dir1" "dir4"))))
+    
+    During the invocation one can change the directory group that
+    is used for the underlying search
 -   `helm-deft-extension`: Defines file extension for identifying
     candidate files to be searched for.
     
         (setq helm-deft-extension "org")
+
 
 ## Search options
 
@@ -56,7 +70,11 @@ typing of the search
     is used for the grep.
     -   `C-d`: Delete file under point from the candidates list (also works
         on multiple mark selection).
-    -   `C-e`: Allows to set the candidates list to the list of marked files.
+    -   `C-s`: Allows to set the candidates list to the list of marked files.
+    -   `C-.`: Reset the search to the original list
+-   `C-,`: Allows to switch between directory groups if multiple
+    search groups have been defined in `helm-deft-dir-list`.
+
 
 ## Shortcomings
 
@@ -67,8 +85,13 @@ typing of the search
     a `delayed` attribute in the *matching files* source. Regrettably
     this also results in that source being displayed
     last.
+-   I wrote this originally with the idea that I could profit from
+    an async source. This is not true under the current implementation,
+    so the async source is kind of useless for now. I have kept
+    it currently out of lazyness.
 -   Occasionally, helm coughs up and diplays the *matching
     files* block multiple times.
 
 Nonetheless, this is currently the fastest way for me to jump between
 tasks.
+
