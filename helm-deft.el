@@ -63,6 +63,11 @@ Example:
 (defcustom helm-deft-extension "org"
   "Defines file extension for identifying candidate files to be searched for.")
 
+(defcustom helm-deft-fname-search-fn 'helm-deft-fname-search-default
+  "Function for searching all preconfigured directories for matching files.
+
+Returns the filenames as a list.")
+
 (defvar helm-deft-active-dir-list nil
   "Contains the currently active list of directories to search")
 
@@ -94,7 +99,7 @@ Used for allowing the user to reset the candidate file list after manipulations.
 		   (format "%s:   %s" name  "C-r: rotate pattern C-s/C-d: set/delete (marked) candidates"))
     :init (lambda ()
 	    (progn (unless helm-deft-file-list
-		     (setq helm-deft-file-list (helm-deft-fname-search))
+		     (setq helm-deft-file-list (funcall helm-deft-fname-search-fn))
 		     (setq helm-deft-backup-file-list helm-deft-file-list))
 		   (helm-init-candidates-in-buffer 'local
 		     helm-deft-file-list)
@@ -108,9 +113,10 @@ Used for allowing the user to reset the candidate file list after manipulations.
     :keymap helm-deft-map
     :cleanup (lambda () (setq helm-deft-file-list nil))))
 
-(defun helm-deft-fname-search ()
+(defun helm-deft-fname-search-default ()
   "Search all preconfigured directories for matching files.
-Returns the filenames as a list."
+
+Lisp-only default implementation. Returns the filenames as a list."
   (cl-loop for dir in helm-deft-active-dir-list
 	   do (assert (file-exists-p dir) nil
 		      (format "Directory %s does not exist. Check helm-deft-dir-list" dir))
@@ -119,6 +125,20 @@ Returns the filenames as a list."
 	   finally (return (apply #'append reslst)))
   )
 
+(defun helm-deft-fname-search-shell ()
+  "Search all preconfigured directories for matching files.
+
+Implementation using shell command and a sub process. Returns the
+filenames as a list."
+  (with-temp-buffer
+    (cl-loop for dir in helm-deft-active-dir-list
+	     do (assert (file-exists-p dir) nil
+			(format "Directory %s does not exist. Check helm-deft-dir-list" dir))
+	     do (call-process-shell-command
+		 (format "find %s -name \\*.%s" dir helm-deft-extension)
+		 nil t)
+	     )
+    (split-string (buffer-string) "\n")))
 
 (defvar helm-source-deft-filegrep
   (helm-build-async-source "File contents"

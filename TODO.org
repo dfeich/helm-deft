@@ -1,0 +1,67 @@
+* Feature requests
+** scoring of search results
+    - maybe allow user to define regex for higher scores (e.g. "^\* "
+      for org mode titles)?
+    - higher score for several hits on the same line       
+    - maybe separate filename results from grep derived results
+** DONE matching of whole words
+** matching of sequences of words (includes spaces)
+** TODO AG Silver searcher backend   
+    - grep -Elie 'pat' file1 => ag -li 'pat' file1
+    - grep -EHine 'pat' file1 => ag -i --noheading
+      - Problem. If ag receives just a single file, it does not print the filename
+	in front of the search hit (unlike grep -H). So, searching a single file
+	must be treated specially.
+    - additional possibility: find all files matching a pattern: ag -g 'pat' dir
+       - use --vimgrep option of ag for parsing
+	 #+BEGIN_SRC sh
+	 ag --stats --vimgrep derek *.org
+	 #+END_SRC
+
+	 The lookup of file candidates can be given inside the ag command with
+	 the -G option. The -Q option searches for the literal expression instead
+	 of a regular epression.
+
+               #+BEGIN_SRC sh
+	 ag --stats --vimgrep -G '.*\.org' -Q Derek 
+** TODO rg ripgrep as a backend
+   - search examples
+     - list all files of type org in Documents/ matching "TODO:"
+       : rg -l -t org TAG: Documents
+     - same, but instead of a predefined type use a globbing expression
+       : rg -l -g '*.org' TAG: Documents
+
+   #+BEGIN_SRC bash :results output
+   time (find ~/Documents -name '*.org' | xargs grep 'TODO:')  2>&1 1>/dev/null
+   #+END_SRC
+
+   #+RESULTS:
+   : 
+   : real	0m0.084s
+   : user	0m0.013s
+   : sys	0m0.073s
+
+   #+BEGIN_SRC bash :results output
+   time (find ~/Documents -name '*.org' | xargs rg 'TODO:')  2>&1 1>/dev/null
+   #+END_SRC
+
+   #+RESULTS:
+   : 
+   : real	0m0.086s
+   : user	0m0.021s
+   : sys	0m0.070s
+   
+** DONE Increase speed by substituting pure lisp file finding
+   CLOSED: [2018-07-15 Sun 10:19]
+   Using f--files is quite slow. Offer alternative ways, e.g. by using
+   an external shell command like "find".
+
+* Issues
+  - the helm search is different from the searches running in the shell subprocess
+    (currently grep based). Different regexp search syntax.
+  - The "Matching Files" and "File Contents" Sources both build their lists from
+    the results of the asynchronous subprocess. But helm can only deal with a single
+    such process. New results in the "Matching Files" are not correctly updated.
+  - [2017-12-31 Sun] when I use "snf suk" I only get 3 matching files,
+    but if I use "suk snf" there are lots.
+    
