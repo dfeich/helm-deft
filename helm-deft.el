@@ -145,7 +145,7 @@ filenames as a list."
     :candidates-process #'helm-deft-fgrep-search
     ;; We use the action from the helm-grep module
     :action #'helm-grep-action
-    :requires-pattern t
+    :requires-pattern 2
     :pattern-transformer (lambda (pattern)
 			   (cl-loop for ptr in (split-string pattern "  *" t)
 				    if (string-prefix-p "w:" ptr)
@@ -294,7 +294,7 @@ matching lines.  FILELST is a list of file paths"
     ;; 					       (lambda (a b)
     ;; 						 (string< (downcase (car a))
     ;; 							  (downcase (car b)))))))
-    :requires-pattern t
+    :requires-pattern 2
     :volatile t
     :keymap helm-deft-map
     )
