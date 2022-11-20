@@ -233,7 +233,7 @@ matching lines.  FILELST is a list of file paths"
   ;; function since helm-pattern is already cleaned by the
   ;; pattern-transformer function of helm-source-deft-filegrep
   (let* ((shcmd (helm-deft-build-cmd helm-input helm-deft-file-list)))
-    (helm-log "grep command: %s" shcmd)
+    (helm-log "helm-deft" "grep command: %s" shcmd)
     ;; the function must return the process object
     (prog1
 	;; a process buffer is not needed since helm is collecting the
@@ -243,7 +243,7 @@ matching lines.  FILELST is a list of file paths"
       (set-process-sentinel
        (get-process "helm-deft-proc")
        (lambda (process event)
-	 (helm-log "file contents sentinel event: %s"
+	 (helm-log "helm-deft" "file contents sentinel event: %s"
 		   (replace-regexp-in-string "\n" "" event))
       	 (cond
 	  ;; Helm may kill the process in
@@ -252,7 +252,7 @@ matching lines.  FILELST is a list of file paths"
 	  ;; TODO: maybe do something more sensible int the sentinel
       	  ((or (string= event "finished\n")
 	       (string= event "killed\n"))
-	   (helm-log "doing nothing")
+	   (helm-log "helm-deft" "doing nothing")
       	   ;; (with-helm-window
       	   ;;   (setq mode-line-format
       	   ;; 	   '(" " mode-line-buffer-identification " "
@@ -273,7 +273,7 @@ matching lines.  FILELST is a list of file paths"
 
 	  ;; Catch unhandled events in log.
 	  (t
-	   (helm-log
+	   (helm-log "helm-deft"
 	    "Unhandled event in process sentinel: %s"
 	    (replace-regexp-in-string "\n" "" event))))
 	 ))
@@ -310,7 +310,7 @@ matching lines.  FILELST is a list of file paths"
 (defun helm-deft-rotate-searchkeys ()
   "Rotate the words of the search pattern in the helm minibuffer."
   (interactive)
-  (helm-log "Executing helm-deft-rotate-searchkeys")
+  (helm-log "helm-deft" "Executing helm-deft-rotate-searchkeys")
   (let ((patlst (split-string helm-pattern "  *")))
     (when (and (>= (length patlst) 1)
 	       (> (length (car patlst)) 0))
